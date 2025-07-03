@@ -28,61 +28,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ activities, userStats }) =>
   const [selectedCategory, setSelectedCategory] = useState<ActivityType | 'all'>('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Filter activities based on selected period
-  const filteredActivities = useMemo(() => {
-    const now = new Date();
-    let startDate = new Date();
-
-    switch (selectedPeriod) {
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case 'quarter':
-        startDate.setMonth(now.getMonth() - 3);
-        break;
-      case 'year':
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-      case 'all':
-        startDate = new Date(0);
-        break;
-    }
-
-    return activities.filter(activity => {
-      const activityDate = new Date(activity.date);
-      const matchesPeriod = activityDate >= startDate;
-      const matchesCategory = selectedCategory === 'all' || activity.type === selectedCategory;
-      return matchesPeriod && matchesCategory;
-    });
-  }, [activities, selectedPeriod, selectedCategory]);
-
-  // Calculate report statistics
-  const reportStats = useMemo(() => {
-    const totalEmissions = filteredActivities.reduce((sum, a) => sum + a.emissions, 0);
-    const averageDaily = totalEmissions / Math.max(1, getDaysInPeriod(selectedPeriod));
-    
-    const categoryBreakdown = filteredActivities.reduce((acc, activity) => {
-      acc[activity.type] = (acc[activity.type] || 0) + activity.emissions;
-      return acc;
-    }, {} as Record<ActivityType, number>);
-
-    const monthlyData = getMonthlyData(filteredActivities);
-    const topEmissionDays = getTopEmissionDays(filteredActivities);
-    
-    return {
-      totalEmissions,
-      averageDaily,
-      totalActivities: filteredActivities.length,
-      categoryBreakdown,
-      monthlyData,
-      topEmissionDays,
-      reductionFromPrevious: calculateReductionFromPrevious(filteredActivities, selectedPeriod)
-    };
-  }, [filteredActivities, selectedPeriod]);
-
+  // Helper functions - defined before usage
   const getDaysInPeriod = (period: string) => {
     switch (period) {
       case 'week': return 7;
@@ -139,6 +85,61 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ activities, userStats }) =>
     if (previousEmissions === 0) return 0;
     return ((previousEmissions - currentEmissions) / previousEmissions) * 100;
   };
+
+  // Filter activities based on selected period
+  const filteredActivities = useMemo(() => {
+    const now = new Date();
+    let startDate = new Date();
+
+    switch (selectedPeriod) {
+      case 'week':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case 'year':
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case 'all':
+        startDate = new Date(0);
+        break;
+    }
+
+    return activities.filter(activity => {
+      const activityDate = new Date(activity.date);
+      const matchesPeriod = activityDate >= startDate;
+      const matchesCategory = selectedCategory === 'all' || activity.type === selectedCategory;
+      return matchesPeriod && matchesCategory;
+    });
+  }, [activities, selectedPeriod, selectedCategory]);
+
+  // Calculate report statistics
+  const reportStats = useMemo(() => {
+    const totalEmissions = filteredActivities.reduce((sum, a) => sum + a.emissions, 0);
+    const averageDaily = totalEmissions / Math.max(1, getDaysInPeriod(selectedPeriod));
+    
+    const categoryBreakdown = filteredActivities.reduce((acc, activity) => {
+      acc[activity.type] = (acc[activity.type] || 0) + activity.emissions;
+      return acc;
+    }, {} as Record<ActivityType, number>);
+
+    const monthlyData = getMonthlyData(filteredActivities);
+    const topEmissionDays = getTopEmissionDays(filteredActivities);
+    
+    return {
+      totalEmissions,
+      averageDaily,
+      totalActivities: filteredActivities.length,
+      categoryBreakdown,
+      monthlyData,
+      topEmissionDays,
+      reductionFromPrevious: calculateReductionFromPrevious(filteredActivities, selectedPeriod)
+    };
+  }, [filteredActivities, selectedPeriod]);
 
   const handleExport = async (format: 'pdf' | 'csv' | 'json') => {
     setIsExporting(true);
